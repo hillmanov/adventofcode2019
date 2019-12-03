@@ -13,7 +13,8 @@ func main() {
 		panic(err)
 	}
 
-	totalFuelRequirements := 0
+	fuelForMass := 0
+  fuelForMassAndFuel := 0
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -22,12 +23,23 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		totalFuelRequirements = totalFuelRequirements + getRequiredFuel(mass)
+		fuelForMass += getFuelForMass(mass)
+    fuelForMassAndFuel += getFuelForMassAndFuel(mass)
 	}
 
-	fmt.Printf("Total = %+v\n", totalFuelRequirements)
+	fmt.Printf("Fuel for mass: = %+v\n", fuelForMass)
+	fmt.Printf("Fuel for mass and fuel: = %+v\n", fuelForMassAndFuel)
 }
 
-func getRequiredFuel(mass int) int {
+func getFuelForMassAndFuel(mass int) int {
+	fuel := getFuelForMass(mass)
+	if fuel > 0 {
+		fuel += getFuelForMassAndFuel(fuel)
+		return fuel
+	}
+	return 0
+}
+
+func getFuelForMass(mass int) int {
 	return int(mass/3) - 2
 }
