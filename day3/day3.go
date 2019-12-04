@@ -45,7 +45,7 @@ func main() {
 	paths := strings.Split(string(contents), "\n")
 
 	dist := getDistanceOfClosesIntersection(paths)
-	fmt.Printf("Manhattan distance of closet intersection: %d\n", dist)
+	fmt.Printf("Manhattan distance of closest intersection: %d\n", dist)
 }
 
 func getDistanceOfClosesIntersection(paths []string) int {
