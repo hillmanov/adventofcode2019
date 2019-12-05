@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -40,15 +41,60 @@ func (w wire) bounds() (up, down, left, right int) {
 	return
 }
 
+func (w wire) stepsUntil(targetCol, targetRow, startCol, startRow int) int {
+	col := startCol
+	row := startRow
+	steps := 0
+	for _, instruction := range w.path {
+		switch instruction.Direction {
+		case "U":
+			for i := 0; i < instruction.Steps; i++ {
+				row++
+				steps++
+				if row == targetRow && col == targetCol {
+					return steps
+				}
+			}
+		case "D":
+			for i := 0; i < instruction.Steps; i++ {
+				row--
+				steps++
+				if row == targetRow && col == targetCol {
+					return steps
+				}
+			}
+		case "L":
+			for i := 0; i < instruction.Steps; i++ {
+				col--
+				steps++
+				if row == targetRow && col == targetCol {
+					return steps
+				}
+			}
+		case "R":
+			for i := 0; i < instruction.Steps; i++ {
+				col++
+				steps++
+				if row == targetRow && col == targetCol {
+					return steps
+				}
+			}
+		}
+	}
+	return steps
+}
+
 func main() {
 	contents, _ := ioutil.ReadFile("./input.txt")
 	paths := strings.Split(string(contents), "\n")
 
-	dist := getDistanceOfClosesIntersection(paths)
-	fmt.Printf("Manhattan distance of closest intersection: %d\n", dist)
+	minDist, minSteps := getDistanceOfClosesIntersection(paths)
+
+	fmt.Printf("Part 1: Manhattan distance of closest intersection: %d\n", minDist)
+	fmt.Printf("Part 2: Min steps to an intersection: %d\n", minSteps)
 }
 
-func getDistanceOfClosesIntersection(paths []string) int {
+func getDistanceOfClosesIntersection(paths []string) (int, int) {
 	wire1 := wire{
 		id:   1,
 		path: parsePath(paths[0]),
@@ -77,7 +123,17 @@ func getDistanceOfClosesIntersection(paths []string) int {
 
 	closest := intersections[0]
 
-	return dist(startCol, startRow, closest[0], closest[1])
+	minDist := dist(startCol, startRow, closest[0], closest[1])
+
+	minStepsToIntersection := math.MaxInt64
+	for _, intersection := range intersections {
+		distA := wire1.stepsUntil(intersection[0], intersection[1], startCol, startRow)
+		distB := wire2.stepsUntil(intersection[0], intersection[1], startCol, startRow)
+
+		minStepsToIntersection = min(minStepsToIntersection, distA+distB)
+	}
+
+	return minDist, minStepsToIntersection
 }
 
 func trace(g [][]uint8, w wire, startCol, startRow int) {
