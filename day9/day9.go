@@ -215,27 +215,3 @@ func reverse(s string) string {
 	}
 	return string(runes)
 }
-func permutation(xs []int) (permuts [][]int) {
-	var rc func([]int, int)
-	rc = func(a []int, k int) {
-		if k == len(a) {
-			permuts = append(permuts, append([]int{}, a...))
-		} else {
-			for i := k; i < len(xs); i++ {
-				a[k], a[i] = a[i], a[k]
-				rc(a, k+1)
-				a[k], a[i] = a[i], a[k]
-			}
-		}
-	}
-	rc(xs, 0)
-
-	return permuts
-}
-
-func max(a, b int) int {
-	if a < b {
-		return b
-	}
-	return a
-}
