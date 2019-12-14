@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"math"
+	"sort"
 	"strings"
 )
 
@@ -11,26 +13,73 @@ type location struct {
 	Col int
 }
 
+type directionAndAngle struct {
+	Direction string
+	Angle     float64
+}
+
+func (l location) distanceFrom(d location) float64 {
+	return math.Abs(math.Sqrt(math.Pow(float64(d.Col)-float64(l.Col), 2) + math.Pow(float64(d.Row)-float64(l.Row), 2)))
+}
+
 func main() {
 	input, _ := ioutil.ReadFile("./input.txt")
 	asteroidLocations := parseAsteroidLocations(string(input))
 
-	// Part 1
-	func() {
-		visibleAsteroidsByLocation := make(map[location]int)
-		for _, l := range asteroidLocations {
-			visibleAsteroidsByLocation[l] = findVisibleAsteroidCount(l, asteroidLocations)
-		}
+	visibleAsteroidsByLocation := make(map[location]map[directionAndAngle][]location)
+	for _, l := range asteroidLocations {
+		visibleAsteroidsByLocation[l] = findVisibleAsteroids(l, asteroidLocations)
+	}
 
-		var locationWithMostVisible location
-		for l, visible := range visibleAsteroidsByLocation {
-			if visible > visibleAsteroidsByLocation[locationWithMostVisible] {
-				locationWithMostVisible = l
+	var locationWithMostVisible location
+	for l, visible := range visibleAsteroidsByLocation {
+		if len(visible) > len(visibleAsteroidsByLocation[locationWithMostVisible]) {
+			locationWithMostVisible = l
+		}
+	}
+
+	fmt.Printf("Part 1: %d\n", len(visibleAsteroidsByLocation[locationWithMostVisible]))
+
+	clockwiseRotationOrder := []string{"U", "UR", "R", "DR", "D", "DL", "L", "UL"}
+	anglesAndAsteroids := visibleAsteroidsByLocation[locationWithMostVisible]
+
+	// Get a list of all of the angles
+	angles := make([]directionAndAngle, 0)
+	for da, _ := range anglesAndAsteroids {
+		angles = append(angles, da)
+	}
+
+	// Sort the angles by clockwise order
+	sort.Slice(angles, func(i, j int) bool {
+		a := angles[i]
+		b := angles[j]
+		if indexOf(clockwiseRotationOrder, a.Direction) < indexOf(clockwiseRotationOrder, b.Direction) {
+			return true
+		} else if indexOf(clockwiseRotationOrder, a.Direction) > indexOf(clockwiseRotationOrder, b.Direction) {
+			return false
+		} else {
+			return a.Angle < b.Angle
+		}
+	})
+
+	var lastVaporized location
+	for i := 0; i < 200; i++ {
+		var currentAngle directionAndAngle
+		j := i
+		for {
+			currentAngle = angles[j%len(angles)]
+			if len(anglesAndAsteroids[currentAngle]) == 0 {
+				j += 1
+			} else {
+				break
 			}
 		}
+		lastVaporized = anglesAndAsteroids[currentAngle][0]
+		anglesAndAsteroids[currentAngle] = anglesAndAsteroids[currentAngle][1:]
+	}
 
-		fmt.Printf("Part 1: %d\n", visibleAsteroidsByLocation[locationWithMostVisible])
-	}()
+	r := (lastVaporized.Col * 100) + lastVaporized.Row
+	fmt.Printf("Part 2: %d\n", r)
 }
 
 func parseAsteroidLocations(s string) (asteroidField []location) {
@@ -45,34 +94,47 @@ func parseAsteroidLocations(s string) (asteroidField []location) {
 	return
 }
 
-func findVisibleAsteroidCount(origin location, asteroidLocations []location) int {
+func findVisibleAsteroids(origin location, asteroidLocations []location) map[directionAndAngle][]location {
 	// Find all other asteroids. Group by "slope" (rise/run).
-	asteroidsBySightAngle := make(map[string][]location)
+	asteroidsBySightAngle := make(map[directionAndAngle][]location)
 	for _, al := range asteroidLocations {
 		if al.Row == origin.Row && al.Col == origin.Col {
 			continue
 		}
 
-		direction := ""
-		if al.Row > origin.Row {
-			direction += "D"
-		} else if al.Row < origin.Row {
-			direction += "D"
+		da := directionAndAngle{}
+		if al.Row <= origin.Row {
+			da.Direction += "U"
+		} else if al.Row >= origin.Row {
+			da.Direction += "D"
 		}
 
 		if al.Col > origin.Col {
-			direction += "R"
+			da.Direction += "R"
 		} else if al.Col < origin.Col {
-			direction += "L"
+			da.Direction += "L"
 		}
 
 		angle := (float64(al.Row) - float64(origin.Row)) / (float64(al.Col) - float64(origin.Col))
-		key := fmt.Sprintf("%s:%f", direction, angle)
+		da.Angle = angle
 
-		asteroidsBySightAngle[key] = append(asteroidsBySightAngle[key], al)
+		asteroidsBySightAngle[da] = append(asteroidsBySightAngle[da], al)
 	}
 
-	// Sort all asteroids by distance
+	for _, asteroids := range asteroidsBySightAngle {
+		sort.Slice(asteroids, func(i, j int) bool {
+			return origin.distanceFrom(asteroids[i]) < origin.distanceFrom(asteroids[j])
+		})
+	}
 
-	return len(asteroidsBySightAngle)
+	return asteroidsBySightAngle
+}
+
+func indexOf(haystack []string, needle string) int {
+	for i, v := range haystack {
+		if v == needle {
+			return i
+		}
+	}
+	return -1
 }
