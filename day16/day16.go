@@ -34,19 +34,26 @@ func main() {
 
 	fmt.Printf("Part 1: %+v\n", output)
 
-	// Part 2
+	//	Part 2
 	realSignal := make([]int, 0)
 	for i := 0; i < 10000; i++ {
 		realSignal = append(realSignal, originalSignal...)
 	}
 
+	offset := realSignal[0]*1000000 + realSignal[1]*100000 + realSignal[2]*10000 + realSignal[3]*1000 + realSignal[4]*100 + realSignal[5]*10 + realSignal[6]
+
+	verifySignal = make([]int, len(realSignal))
+	copy(verifySignal, realSignal)
 	for i := 0; i < 100; i++ {
-		fmt.Printf("i = %+v\n", i)
-		realSignal = runPhase(realSignal, basePattern)
+		verifySignal[len(realSignal)-1] = realSignal[len(realSignal)-1]
+		for j := len(realSignal) - 2; j >= 0; j-- {
+			verifySignal[j] = (realSignal[j] + verifySignal[j+1]) % 10
+		}
+
+		realSignal = verifySignal
 	}
 
-	fmt.Printf("realSignal[:8] = %+v\n", realSignal[:8])
-
+	fmt.Printf("realSignal[:8] = %+v\n", realSignal[offset:offset+8])
 }
 
 func runPhase(signal []int, basePattern []int) []int {
