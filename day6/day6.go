@@ -52,21 +52,20 @@ func main() {
 		line := scanner.Text()
 		parts := strings.Split(line, ")")
 
-		orbitee := getNode(parts[0])
-		orbiter := getNode(parts[1])
+		orbitee := getOrCreateNode(parts[0])
+		orbiter := getOrCreateNode(parts[1])
 		orbitee.orbiters = append(orbitee.orbiters, orbiter)
 		orbiter.orbitee = orbitee
 	}
 
 	// Part 1
-	allOrbits := getNode("COM").countOrbits(0)
+	allOrbits := getOrCreateNode("COM").countOrbits(0)
 	fmt.Printf("Part 1: All orbits = %+v\n", allOrbits)
 
 	// Part 2
-	you := getNode("YOU")
-	san := getNode("SAN")
+	you := getOrCreateNode("YOU")
+	san := getOrCreateNode("SAN")
 
-	// Arbitrarily choose "YOU" as starting node.
 	firstCommonParent := you.orbitee
 	for !firstCommonParent.hasOrbiter("SAN") {
 		firstCommonParent = firstCommonParent.orbitee
@@ -75,7 +74,7 @@ func main() {
 	fmt.Printf("Part 2: Orbital Transfers: %d\n", you.orbitee.distanceToOrbitee(firstCommonParent.Name)+san.orbitee.distanceToOrbitee(firstCommonParent.Name))
 }
 
-func getNode(name string) *object {
+func getOrCreateNode(name string) *object {
 	if o, ok := nodeMap[name]; ok {
 		return o
 	}

@@ -191,7 +191,6 @@ func main() {
 				icc.InputChannel <- direction
 
 			case statusCode := <-icc.OutputChannel:
-
 				switch statusCode {
 				case wall:
 					wallLocation := applyDirection(currentLocation, direction)
