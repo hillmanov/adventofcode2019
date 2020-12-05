@@ -8,7 +8,6 @@ import (
 )
 
 // Intcode program lifted from day5.go
-
 type intcodeProgram []int
 
 const (
@@ -145,15 +144,10 @@ func main() {
 				amplifiers[i].Halted = false
 
 				A.OutputChannel = B.InputChannel
-				A.OutputAmplifier = B
 				B.OutputChannel = C.InputChannel
-				B.OutputAmplifier = C
 				C.OutputChannel = D.InputChannel
-				C.OutputAmplifier = D
 				D.OutputChannel = E.InputChannel
-				D.OutputAmplifier = E
 				E.OutputChannel = finalSignal
-				E.OutputAmplifier = nil
 
 				go amplifiers[i].executeProgram(finalSignal)
 				amplifiers[i].InputChannel <- phaseSetting
@@ -181,13 +175,9 @@ func main() {
 				amplifiers[i].Halted = false
 
 				A.OutputChannel = B.InputChannel
-				A.OutputAmplifier = B
 				B.OutputChannel = C.InputChannel
-				B.OutputAmplifier = C
 				C.OutputChannel = D.InputChannel
-				C.OutputAmplifier = D
 				D.OutputChannel = E.InputChannel
-				D.OutputAmplifier = E
 				E.OutputChannel = A.InputChannel
 				E.OutputAmplifier = A
 
