@@ -46,14 +46,19 @@ type instruction struct {
 }
 
 type amplifier struct {
-	Name          string
-	PhaseSetting  int
-	Program       intcodeProgram
-	InputChannel  chan int
-	OutputChannel chan int
+	Name            string
+	PhaseSetting    int
+	Program         intcodeProgram
+	InputChannel    chan int
+	OutputChannel   chan int
+	OutputAmplifier *amplifier
+	Halted          bool
 }
 
 func (a *amplifier) getValue(p Param) int {
+	if p.Value > len(a.Program) {
+		return 0
+	}
 	if p.Mode == 0 {
 		return a.Program[p.Value]
 	}
@@ -62,14 +67,14 @@ func (a *amplifier) getValue(p Param) int {
 
 func (a *amplifier) executeProgram(finalSignal chan int) {
 	for i := 0; i < len(a.Program); {
-		value := a.Program[i]
+		instruction := a.Program[i]
 
-		opcode, params := parseInstruction(value)
+		opcode, params := parseInstruction(instruction)
 
 		for x := 0; x < opcodeArity[opcode]; x++ {
 			params[x].Value = a.Program[i+x+1]
 		}
-		// This might be overwritten
+
 		i += opcodeArity[opcode] + 1
 
 		switch opcode {
@@ -101,14 +106,13 @@ func (a *amplifier) executeProgram(finalSignal chan int) {
 			a.Program[params[0].Value] = <-a.InputChannel
 		case output:
 			outputValue := a.getValue(params[0])
-			defer func() {
-				if r := recover(); r != nil {
-					finalSignal <- outputValue
-				}
-			}()
-			a.OutputChannel <- a.getValue(params[0])
+			if a.OutputAmplifier != nil && a.OutputAmplifier.Halted {
+				finalSignal <- outputValue
+				return
+			}
+			a.OutputChannel <- outputValue
 		case halt:
-			close(a.InputChannel)
+			a.Halted = true
 			return
 		}
 	}
@@ -119,12 +123,11 @@ func main() {
 	var origP intcodeProgram
 	json.Unmarshal([]byte("["+string(input)+"]"), &origP)
 
-	A := &amplifier{Name: "A"}
-	B := &amplifier{Name: "B"}
-	C := &amplifier{Name: "C"}
-	D := &amplifier{Name: "D"}
-	E := &amplifier{Name: "E"}
-
+	A := &amplifier{Name: "A", InputChannel: make(chan int)}
+	B := &amplifier{Name: "B", InputChannel: make(chan int)}
+	C := &amplifier{Name: "C", InputChannel: make(chan int)}
+	D := &amplifier{Name: "D", InputChannel: make(chan int)}
+	E := &amplifier{Name: "E", InputChannel: make(chan int)}
 	amplifiers := []*amplifier{A, B, C, D, E}
 
 	// Part 1
@@ -132,24 +135,30 @@ func main() {
 		// Normal execution phase settings
 		phases := []int{0, 1, 2, 3, 4}
 		finalSignal := make(chan int)
-		maxSignal := 0
 
+		maxSignal := 0
 		for _, phase := range permutation(phases) {
-			p := make([]int, len(origP))
-			copy(p, origP)
 			for i, phaseSetting := range phase {
+				p := make([]int, len(origP))
+				copy(p, origP)
 				amplifiers[i].Program = p
-				// Bah - a bit sloppy. Had to get it done.
-				amplifiers[i].InputChannel = make(chan int)
+				amplifiers[i].Halted = false
+
 				A.OutputChannel = B.InputChannel
+				A.OutputAmplifier = B
 				B.OutputChannel = C.InputChannel
+				B.OutputAmplifier = C
 				C.OutputChannel = D.InputChannel
+				C.OutputAmplifier = D
 				D.OutputChannel = E.InputChannel
+				D.OutputAmplifier = E
 				E.OutputChannel = finalSignal
+				E.OutputAmplifier = nil
 
 				go amplifiers[i].executeProgram(finalSignal)
 				amplifiers[i].InputChannel <- phaseSetting
 			}
+
 			A.InputChannel <- 0
 			maxSignal = max(maxSignal, <-finalSignal)
 		}
@@ -162,25 +171,30 @@ func main() {
 		// Feedback loop phase settings
 		phases := []int{5, 6, 7, 8, 9}
 		finalSignal := make(chan int)
-		maxSignal := 0
 
+		maxSignal := 0
 		for _, phase := range permutation(phases) {
 			for i, phaseSetting := range phase {
 				p := make([]int, len(origP))
 				copy(p, origP)
 				amplifiers[i].Program = p
+				amplifiers[i].Halted = false
 
-				// Bah - a bit sloppy. Had to get it done.
-				amplifiers[i].InputChannel = make(chan int)
 				A.OutputChannel = B.InputChannel
+				A.OutputAmplifier = B
 				B.OutputChannel = C.InputChannel
+				B.OutputAmplifier = C
 				C.OutputChannel = D.InputChannel
+				C.OutputAmplifier = D
 				D.OutputChannel = E.InputChannel
+				D.OutputAmplifier = E
 				E.OutputChannel = A.InputChannel
+				E.OutputAmplifier = A
 
 				go amplifiers[i].executeProgram(finalSignal)
 				amplifiers[i].InputChannel <- phaseSetting
 			}
+
 			A.InputChannel <- 0
 			maxSignal = max(maxSignal, <-finalSignal)
 		}
@@ -189,10 +203,10 @@ func main() {
 	}()
 }
 
-func parseInstruction(value int) (int, []Param) {
-	s := strconv.Itoa(value)
+func parseInstruction(instruction int) (int, []Param) {
+	s := strconv.Itoa(instruction)
 	if len(s) == 1 {
-		return value, make([]Param, opcodeArity[value])
+		return instruction, make([]Param, opcodeArity[instruction])
 	}
 
 	// Opcode is the last two digits of the instruction
@@ -218,6 +232,7 @@ func reverse(s string) string {
 	}
 	return string(runes)
 }
+
 func permutation(xs []int) (permuts [][]int) {
 	var rc func([]int, int)
 	rc = func(a []int, k int) {
