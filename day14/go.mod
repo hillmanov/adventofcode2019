@@ -2,6 +2,6 @@ module adventofcode/day14
 
 go 1.15
 
-replace adventofcode/intcodecomputer => ../intcodecomputer
+replace adventofcode/intcode => ../intcode
 
-require adventofcode/intcodecomputer v0.0.0
+require adventofcode/intcode v0.0.0

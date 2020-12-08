@@ -1,9 +1,8 @@
 package main
 
 import (
-	"encoding/json"
+	"adventofcode/intcode"
 	"fmt"
-	"io/ioutil"
 )
 
 type intcodeProgram []int
@@ -22,78 +21,39 @@ type instruction struct {
 }
 
 func main() {
-	line, err := ioutil.ReadFile("./input.txt")
-	if err != nil {
-		panic(err)
-	}
+	intcodeProgram := intcode.ReadIntcodeProgram("./input.txt")
 
-	var origP intcodeProgram
-	if err := json.Unmarshal([]byte("["+string(line)+"]"), &origP); err != nil {
-		panic(err)
-	}
-
-	p := make([]int, len(origP))
-
-	// Part1
-	copy(p, origP)
-	r := part1(p)
+	r := part1(intcode.CopyIntcodeProgram(intcodeProgram))
 	fmt.Printf("Result: = %d\n", r[0])
 
-	// Part2
-	copy(p, origP)
-	noun, verb := part2(p)
+	noun, verb := part2(intcode.CopyIntcodeProgram(intcodeProgram))
 	fmt.Printf("Noun: %d Verb: %d Computed: %d\n", noun, verb, 100*noun+verb)
 }
 
-func part1(p intcodeProgram) intcodeProgram {
-	// Initialize according to instructions
+func part1(p intcode.IntcodeProgram) intcodeProgram {
 	p[1] = 12
 	p[2] = 2
 
-	return executeIntcodeProgram(p)
+	icc := intcode.NewIntCodeComputer(p)
+
+	go icc.Run()
+	<-icc.DoneChannel
+	return icc.Program
 }
 
-func part2(p intcodeProgram) (int, int) {
-	candidateP := make([]int, len(p))
+func part2(p intcode.IntcodeProgram) (int, int) {
 	for noun := 0; noun <= 99; noun++ {
 		for verb := 0; verb <= 99; verb++ {
-			copy(candidateP, p)
-			candidateP[1] = noun
-			candidateP[2] = verb
-			r := executeIntcodeProgram(candidateP)
-			if r[0] == 19690720 {
+			candidate := intcode.CopyIntcodeProgram(p)
+			candidate[1] = noun
+			candidate[2] = verb
+			icc := intcode.NewIntCodeComputer(candidate)
+			go icc.Run()
+			<-icc.DoneChannel
+			if icc.Program[0] == 19690720 {
 				return noun, verb
 			}
 		}
 	}
 	return -1, -1
-}
-
-func executeIntcodeProgram(p intcodeProgram) intcodeProgram {
-	var f instruction
-	for i := 0; f.Opcode != halt; i += 4 {
-		if len(p[i:]) >= 4 {
-			f = instruction{
-				Opcode:      p[i],
-				Param1:      p[i+1],
-				Param2:      p[i+2],
-				Destination: p[i+3],
-			}
-		} else {
-			f = instruction{
-				Opcode: p[i],
-			}
-		}
-
-		switch f.Opcode {
-		case add:
-			p[f.Destination] = p[f.Param1] + p[f.Param2]
-		case mult:
-			p[f.Destination] = p[f.Param1] * p[f.Param2]
-		case halt:
-			break
-		}
-	}
-
-	return p
 }

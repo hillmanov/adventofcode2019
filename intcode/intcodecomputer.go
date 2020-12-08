@@ -1,6 +1,12 @@
-package intcodecomputer
+package intcode
 
-import "strconv"
+import (
+	"encoding/json"
+	"io/ioutil"
+	"strconv"
+)
+
+type IntcodeProgram []int
 
 const (
 	add         = 1
@@ -172,4 +178,25 @@ func reverse(s string) string {
 		runes[i], runes[j] = runes[j], runes[i]
 	}
 	return string(runes)
+}
+
+func ReadIntcodeProgram(filename string) IntcodeProgram {
+	line, err := ioutil.ReadFile(filename)
+	if err != nil {
+		panic(err)
+	}
+
+	var icp IntcodeProgram
+	if err := json.Unmarshal([]byte("["+string(line)+"]"), &icp); err != nil {
+		panic(err)
+	}
+	return icp
+}
+
+func CopyIntcodeProgram(source IntcodeProgram) IntcodeProgram {
+	target := make([]int, len(source))
+	for i, v := range source {
+		target[i] = v
+	}
+	return target
 }
