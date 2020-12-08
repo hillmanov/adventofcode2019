@@ -1,5 +1,7 @@
-module github.com/hillmanov/adventofcode/day16
+module adventofcode/day16
 
-go 1.13
+go 1.15
 
-require github.com/pkg/profile v1.5.0
+replace adventofcode/intcodecomputer => ../intcodecomputer
+
+require adventofcode/intcodecomputer v0.0.0

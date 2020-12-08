@@ -1,3 +1,7 @@
-module github.com/hillmanov/adventofcode/day2
+module adventofcode/day2
 
-go 1.13
+go 1.15
+
+replace adventofcode/intcodecomputer => ../intcodecomputer
+
+require adventofcode/intcodecomputer v0.0.0

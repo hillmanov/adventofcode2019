@@ -1,123 +1,6 @@
-package main
+package intcodecomputer
 
-import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"strconv"
-)
-
-const (
-	scaffold = 35
-	space    = 46
-	up       = 94
-	down     = 62
-	left     = 60
-	right    = 118
-	newline  = 10
-)
-
-func main() {
-	input, _ := ioutil.ReadFile("./input.txt")
-	var program []int
-	json.Unmarshal([]byte("["+string(input)+"]"), &program)
-
-	// Part 1
-	func() {
-		icc := NewIntCodeComputer(program)
-		output := [][]string{}
-		line := []string{}
-
-		go icc.executeProgram()
-
-	runProgram:
-		for {
-			select {
-			case command := <-icc.OutputChannel:
-				switch command {
-				case scaffold:
-					fmt.Print("#")
-					line = append(line, "#")
-				case space:
-					fmt.Print(".")
-					line = append(line, ".")
-				case up:
-					fmt.Print("^")
-					line = append(line, "^")
-				case down:
-					fmt.Print("v")
-					line = append(line, "v")
-				case left:
-					fmt.Print("<")
-					line = append(line, "<")
-				case right:
-					fmt.Print(">")
-					line = append(line, ">")
-				case newline:
-					fmt.Print("\n")
-					if len(line) > 0 {
-						output = append(output, line)
-					}
-					line = []string{}
-				}
-			case <-icc.DoneChannel:
-				break runProgram
-			}
-		}
-		fmt.Printf("output = %+v\n", output)
-
-		alignmentParameters := findAlignmentParameters(output)
-
-		sum := 0
-		for _, pair := range alignmentParameters {
-			sum += pair[0] * pair[1]
-		}
-
-		fmt.Printf("Part 1: = %+v\n", sum)
-
-		findFullPath(output)
-
-	}()
-}
-
-func findAlignmentParameters(output [][]string) [][]int {
-	alignmentParameters := [][]int{}
-	for row := 1; row < len(output)-1; row++ {
-		for col := 1; col < len(output[row])-1; col++ {
-			if output[row][col] == "#" &&
-				output[row-1][col] == "#" &&
-				output[row+1][col] == "#" &&
-				output[row][col-1] == "#" &&
-				output[row][col+1] == "#" {
-				output[row][col] = "O"
-				alignmentParameters = append(alignmentParameters, []int{row, col})
-			}
-		}
-	}
-
-	return alignmentParameters
-}
-
-func findFullPath(output [][]string) {
-	// Find our position and headinng
-	var positionRow int
-	var positionCol int
-	var heading string
-
-	for row := range output {
-		for col := range output[row] {
-			switch output[row][col] {
-			case "^", "v", "<", ">":
-				positionRow = row
-				positionCol = col
-				heading = output[row][col]
-			}
-		}
-	}
-	fmt.Printf("positionRow = %+v\n", positionRow)
-	fmt.Printf("positionCol = %+v\n", positionCol)
-	fmt.Printf("heading = %+v\n", heading)
-}
+import "strconv"
 
 const (
 	add         = 1
@@ -212,7 +95,7 @@ func (icc *IntCodeComputer) MemSet(p Param, v int) {
 	icc.Program[i] = v
 }
 
-func (icc *IntCodeComputer) executeProgram() {
+func (icc *IntCodeComputer) Run() {
 	for programIndex := 0; programIndex < len(icc.Program); {
 		value := icc.Program[programIndex]
 		opcode, params := parseInstruction(value)

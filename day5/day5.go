@@ -99,7 +99,6 @@ func executeIntcodeProgram(ip intcodeProgram, inputValue int) intcodeProgram {
 		case input:
 			ip[params[0].Value] = inputValue
 		case output:
-			fmt.Printf("Value: = %+v\n", getValue(params[0], ip))
 		case halt:
 			return ip
 		}

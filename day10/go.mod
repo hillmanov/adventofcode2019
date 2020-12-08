@@ -1,3 +1,3 @@
-module github.com/hillmanov/adventofcode/day10
+module adventofcode/day10
 
-go 1.13
+go 1.15
