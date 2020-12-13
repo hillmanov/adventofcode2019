@@ -20,9 +20,6 @@ func main() {
 	verifySignal := make([]int, len(originalSignal))
 	copy(verifySignal, originalSignal)
 
-	// verifySignal = runPhase(verifySignal, basePattern)
-	// fmt.Printf("ve = %+v\n", verifySignal)
-
 	for i := 0; i < 100; i++ {
 		verifySignal = runPhase(verifySignal, basePattern)
 	}

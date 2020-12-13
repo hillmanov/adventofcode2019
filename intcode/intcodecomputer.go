@@ -66,6 +66,7 @@ type IntCodeComputer struct {
 	InputChannel  chan int
 	OutputChannel chan int
 	DoneChannel   chan bool
+	RequestInput  bool
 }
 
 func NewIntCodeComputer(program []int) *IntCodeComputer {
@@ -140,6 +141,10 @@ func (icc *IntCodeComputer) Run() {
 		case setRelBase:
 			icc.RelBase += params[0].Value(icc)
 		case input:
+			// Check to see if anyone is waiting
+			if icc.RequestInput {
+				icc.InputChannel <- 0
+			}
 			icc.MemSet(params[0], <-icc.InputChannel)
 		case output:
 			icc.OutputChannel <- params[0].Value(icc)
